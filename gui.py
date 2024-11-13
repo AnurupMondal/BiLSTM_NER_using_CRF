@@ -19,7 +19,7 @@ tagset_size = len(label_list)
 
 # Initialize the BiLSTM-CRF model and load its state
 model = BiLSTM_CRF(vocab_size, tagset_size)
-model.load_state_dict(torch.load('model_backup.pth'))
+model.load_state_dict(torch.load('model.pth'))
 model.eval()
 
 # Map nltk.ne_chunk labels to your ENTITY_COLORS labels
