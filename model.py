@@ -2,14 +2,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from TorchCRF import CRF
-import joblib
 from datasets import load_from_disk
 from transformers import BertTokenizerFast
 from torch.utils.data import DataLoader
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-dataset = load_from_disk("..\conll2003")
+dataset = load_from_disk("conll2003")
 # Check dataset structure
 print(dataset)
 
@@ -67,7 +66,7 @@ class BiLSTM_CRF(nn.Module):
         self.embedding = nn.Embedding(vocab_size, 100)
         self.lstm = nn.LSTM(100, 75, num_layers=1, bidirectional=True, batch_first=True)
         self.hidden2tag = nn.Linear(150, tagset_size)
-        self.crf = CRF(tagset_size, batch_first=True)
+        self.crf = CRF(tagset_size)
 
     def forward(self, sentences, tags=None):
         embeds = self.embedding(sentences)

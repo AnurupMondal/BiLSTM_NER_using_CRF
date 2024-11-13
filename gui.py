@@ -8,6 +8,8 @@ from nltk import pos_tag, ne_chunk
 
 import streamlit as st
 from typing import List, Dict
+from datasets import load_from_disk
+import random
 
 # Initialize the tokenizer and model parameters
 tokenizer = BertTokenizerFast.from_pretrained("bert-base-cased")
@@ -17,9 +19,9 @@ vocab_size = tokenizer.vocab_size
 label_list = ["O", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "B-MISC", "I-MISC"]
 tagset_size = len(label_list)
 
-# Initialize the BiLSTM-CRF model and load its state
+# Initialize the BiLSTM-CRF model and load its state to CPU
 model = BiLSTM_CRF(vocab_size, tagset_size)
-model.load_state_dict(torch.load('model.pth'))
+model.load_state_dict(torch.load('model_backup.pth', map_location=torch.device('cpu')))
 model.eval()
 
 # Map nltk.ne_chunk labels to your ENTITY_COLORS labels
@@ -45,6 +47,17 @@ ENTITY_COLORS = {
     "I-MISC": "#6c757d"   # Continuation of Miscellaneous (gray)
 }
 
+# Load the dataset
+dataset = load_from_disk("conll2003")
+
+def get_random_example():
+    """Fetch a random sentence from the training set of the CoNLL-2003 dataset without entity labels."""
+    example = random.choice(dataset["train"])
+    tokens = example["tokens"]
+    
+    # Join tokens into a single string without labels
+    return " ".join(tokens)
+
 def predict(text: str) -> List[Dict]:
     """Perform NER prediction on the input text."""
     results = []
@@ -58,7 +71,12 @@ def predict(text: str) -> List[Dict]:
             if hasattr(chunk, 'label'):
                 # Get entity text and map to our label format
                 entity = ' '.join(c[0] for c in chunk)
-                start = token.index(entity)
+                start = token.find(entity)  # Use find() instead of index()
+                
+                # Check if the entity was found in the token
+                if start == -1:
+                    continue  # Skip this chunk if the entity is not found
+
                 end = start + len(entity)
                 label = nltk_to_entity_colors_map.get(chunk.label(), "O")  # Default to "O" if not mapped
                 
@@ -67,11 +85,17 @@ def predict(text: str) -> List[Dict]:
             else:
                 # Non-entity word (we'll skip these in highlighting if the tag is "O")
                 word = chunk[0]
-                start = token.index(word)
+                start = token.find(word)  # Use find() instead of index()
+
+                # Check if the word was found in the token
+                if start == -1:
+                    continue  # Skip this chunk if the word is not found
+
                 end = start + len(word)
                 results.append({"entity": word, "start": start, "end": end, "tag": "O"})
     
     return results
+
 
 def highlight_entities(text: str, entities: List[Dict]) -> str:
     """Highlight entities in text using HTML with labeled color boxes."""
@@ -113,13 +137,20 @@ def highlight_entities(text: str, entities: List[Dict]) -> str:
     
     return highlighted_text
 
-
 # Streamlit interface
 st.title("Enhanced Named Entity Recognition (NER) Web App")
 st.write("Enter text and see the named entities highlighted by the BiLSTM-CRF model.")
 
-# Text input from the user
-input_text = st.text_area("Enter text to analyze", "Type some text here...")
+# Set a placeholder for input text
+if "example_text" not in st.session_state:
+    st.session_state.example_text = ""
+
+# Load example text when button is clicked
+if st.button("Load Example"):
+    st.session_state.example_text = get_random_example()
+
+# Display the input box with either user input or example text
+input_text = st.text_area("Enter text to analyze", value=st.session_state.example_text, key="input_text_area")
 
 if st.button("Get NER Predictions"):
     if input_text.strip():

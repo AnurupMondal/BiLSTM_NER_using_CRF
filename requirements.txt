@@ -1,5 +1,5 @@
 torch
-pytorch-crf
+TorchCRF
 datasets
 transformers
 streamlit
