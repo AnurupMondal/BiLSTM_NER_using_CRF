@@ -11,8 +11,6 @@ from typing import List, Dict
 from datasets import load_from_disk
 import random
 
-# nltk.download('punkt_tab')
-
 # Initialize the tokenizer and model parameters
 tokenizer = BertTokenizerFast.from_pretrained("bert-base-cased")
 vocab_size = tokenizer.vocab_size
