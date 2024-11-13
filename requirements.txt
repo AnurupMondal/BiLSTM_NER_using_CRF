@@ -1,0 +1,7 @@
+torch
+pytorch-crf
+datasets
+transformers
+streamlit
+nltk
+scikit-learn
